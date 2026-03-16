@@ -1,71 +1,72 @@
 <template>
-  <div class="filter-container">
-    <div
-      class="d-flex justify-content-center align-items-center flex-wrap gap-3"
-    >
-      <!-- 國家篩選器 -->
-      <div class="filter-group">
-        <label for="country" class="form-label">國家：</label>
-        <select
-          id="country"
-          v-model="selectedCountry"
-          class="form-select short-select"
-          @change="handleCountryChange"
-        >
-          <option value="">（請選擇國家）</option>
-          <option value="蘇格蘭">蘇格蘭</option>
-          <option value="愛爾蘭">愛爾蘭</option>
-          <option value="日本">日本</option>
-          <option value="美國">美國</option>
-          <option value="加拿大">加拿大</option>
-          <option value="臺灣">臺灣</option>
-        </select>
-      </div>
+  <div class="filter-wrapper py-4">
+    <div class="filter-glass-card">
+      <div
+        class="d-flex justify-content-center align-items-center flex-wrap gap-4"
+      >
+        <div class="filter-item">
+          <label class="whisky-label">COUNTRY</label>
+          <div class="select-wrapper">
+            <select
+              v-model="selectedCountry"
+              class="whisky-select"
+              @change="handleCountryChange"
+            >
+              <option value="">所有國家</option>
+              <option value="蘇格蘭">蘇格蘭</option>
+              <option value="愛爾蘭">愛爾蘭</option>
+              <option value="日本">日本</option>
+              <option value="美國">美國</option>
+              <option value="臺灣">臺灣</option>
+            </select>
+          </div>
+        </div>
 
-      <!-- 區域篩選器 -->
-      <div class="filter-group">
-        <label for="region" class="form-label">區域：</label>
-        <select
-          id="region"
-          v-model="selectedRegion"
-          :disabled="!canSelectRegion"
-          class="form-select short-select"
-          @change="updateFilters"
-        >
-          <option value="">（請選擇區域）</option>
-          <option value="低地區">低地區</option>
-          <option value="高地區">高地區</option>
-          <option value="斯貝賽區">斯貝賽區</option>
-          <option value="艾雷島區">艾雷島區</option>
-          <option value="島嶼區">島嶼區</option>
-          <option value="坎貝爾鎮">坎貝爾鎮</option>
-        </select>
-      </div>
+        <div class="filter-item" :class="{ 'is-disabled': !canSelectRegion }">
+          <label class="whisky-label">REGION</label>
+          <div class="select-wrapper">
+            <select
+              v-model="selectedRegion"
+              :disabled="!canSelectRegion"
+              class="whisky-select"
+              @change="updateFilters"
+            >
+              <option value="">所有區域</option>
+              <option value="低地區">低地區</option>
+              <option value="高地區">高地區</option>
+              <option value="斯貝賽區">斯貝賽區</option>
+              <option value="艾雷島區">艾雷島區</option>
+              <option value="島嶼區">島嶼區</option>
+              <option value="坎貝爾鎮">坎貝爾鎮</option>
+            </select>
+          </div>
+        </div>
 
-      <!-- 種類篩選器 -->
-      <div class="filter-group">
-        <label for="category" class="form-label">種類：</label>
-        <select
-          id="category"
-          v-model="selectedCategory"
-          class="form-select short-select"
-          @change="updateFilters"
-        >
-          <option value="">請選擇種類</option>
-          <option value="單一麥芽">單一麥芽</option>
-          <option value="原桶強度">原桶強度</option>
-          <option value="單桶">單桶</option>
-          <option value="調和式">調和式</option>
-          <option value="調和威士忌">調和威士忌</option>
-          <option value="穀物">穀物</option>
-          <option value="波本">波本</option>
-        </select>
-      </div>
+        <div class="filter-item">
+          <label class="whisky-label">CATEGORY</label>
+          <div class="select-wrapper">
+            <select
+              v-model="selectedCategory"
+              class="whisky-select"
+              @change="updateFilters"
+            >
+              <option value="">所有種類</option>
+              <option value="單一麥芽">單一麥芽</option>
+              <option value="原桶強度">原桶強度</option>
+              <option value="單桶">單桶</option>
+              <option value="調和式">調和式</option>
+              <option value="穀物">穀物</option>
+              <option value="波本">波本</option>
+            </select>
+          </div>
+        </div>
 
-      <!-- 取消篩選按鈕 -->
-      <button @click="resetFilters" class="btn btn-secondary btn-sm">
-        取消篩選
-      </button>
+        <div class="filter-action">
+          <button @click="resetFilters" class="reset-btn">
+            <i class="bi bi-arrow-counterclockwise"></i> RESET
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -80,7 +81,6 @@ export default {
     };
   },
   computed: {
-    // 當選擇蘇格蘭時才啟用區域選擇器
     canSelectRegion() {
       return this.selectedCountry === "蘇格蘭";
     },
@@ -110,32 +110,106 @@ export default {
 </script>
 
 <style scoped>
-.short-select {
-  width: 150px;
+/* 1. 修正父容器：加入 flex 並置中 */
+.filter-wrapper {
+  background-color: #1a1c23;
+  display: flex; /* 啟用 Flex */
+  justify-content: center; /* 水平置中 */
+  align-items: center; /* 垂直置中 (視需求) */
+  width: 100%;
 }
 
-.filter-container {
-  padding: 20px 0;
-  text-align: center;
+/* 2. 修正毛玻璃外殼 */
+.filter-glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(226, 201, 151, 0.15);
+  border-radius: 50px;
+  padding: 15px 40px;
+  /* 移除 display: inline-block; 改用 flex 讓內容在裡面也排整齊 */
   display: flex;
-  justify-content: center;
   align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px); /* 為了 Safari */
 }
 
-/* 排列篩選器 */
-.filter-group {
+.filter-item {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  text-align: left;
-  width: 180px;
+  align-items: flex-start;
+  min-width: 140px;
 }
 
-button {
-  align-self: center;
-  margin-top: 15px; /* 按鈕與篩選器間距 */
-  height: 38px; /* 統一高度 */
+/* 標籤設計：琥珀金小字 */
+.whisky-label {
+  color: #e2c997;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  margin-bottom: 5px;
+  margin-left: 10px;
+}
+
+/* 隱藏原生 Select 樣式，自定義外觀 */
+.select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.whisky-select {
+  background: transparent !important;
+  border: none !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+  color: #fff !important;
+  font-size: 0.9rem;
+  padding: 5px 10px;
+  cursor: pointer;
+  width: 100%;
+  transition: all 0.3s ease;
+}
+
+.whisky-select:focus {
+  outline: none;
+  border-bottom-color: #e2c997 !important;
+}
+
+.whisky-select option {
+  background-color: #242731; /* 選項背景也要深色 */
+  color: #fff;
+}
+
+/* 禁用狀態 */
+.is-disabled {
+  opacity: 0.3;
+}
+
+/* 重置按鈕 */
+.reset-btn {
+  background: transparent;
+  border: 1px solid rgba(226, 201, 151, 0.4);
+  color: #e2c997;
+  padding: 8px 20px;
+  border-radius: 30px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 1px;
+  transition: all 0.3s;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.reset-btn:hover {
+  background: #e2c997;
+  color: #1a1c23;
+  box-shadow: 0 0 15px rgba(226, 201, 151, 0.3);
+}
+
+/* 響應式調整 */
+@media (max-width: 768px) {
+  .filter-glass-card {
+    border-radius: 20px;
+    padding: 20px;
+  }
 }
 </style>

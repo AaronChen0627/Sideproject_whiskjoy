@@ -17,52 +17,67 @@ const getters = {
 };
 
 const actions = {
-  // 註冊動作
+// 註冊動作
   async register({ commit }, { email, password }) {
     try {
-      const response = await axios.post(`api/register`, { email, password });
-      const token = response.data.token;
+      // 1. 確保路徑正確
+      const response = await axios.post(`/api/register`, { email, password });
+      
+      // 2. 拿到資料後先做基礎檢查
+      const data = response.data;
+      const token = data.token;
 
-      // 使用 jwt_decode 解析 token
-      const decoded = jwtDecode(token);  // 解析 token 獲取 userId
-      const userId = decoded.userId;  // 從 token 中提取 userId
+      if (token) {
+        try {
+          const decoded = jwtDecode(token);
+          const userId = decoded.userId;
+          commit('setToken', token);
+          commit('setUserId', userId);
+          sessionStorage.setItem('token', token);
+        } catch (decodeError) {
+          console.error("Token 解析失敗，但註冊可能已成功:", decodeError);
+        }
+      }
 
-      // 儲存到 Vuex 和 sessionStorage
-      commit('setToken', token);
-      commit('setUser', response.data.user);
-      commit('setUserId', userId);  // 不再從 sessionStorage 儲存 userId，直接從 token 提取
-      sessionStorage.setItem('token', token);
-      sessionStorage.setItem('user', JSON.stringify(response.data.user));
+      // 3. 儲存用戶資料 (確保 data.user 存在)
+      if (data.user) {
+        commit('setUser', data.user);
+        sessionStorage.setItem('user', JSON.stringify(data.user));
+      }
 
-      return response.data.message;
+      // 4. 回傳後端的成功訊息 (例如: "註冊成功")
+      return data.message || "註冊成功";
+
     } catch (error) {
-      const errorMsg = error.response?.data?.message || '註冊出錯，請稍後再試';
-      console.error('註冊出錯:', errorMsg);
+      // 這裡抓取後端回傳的 400/500 錯誤訊息
+      const errorMsg = error.response?.data?.message || error.response?.data || '註冊出錯，請稍後再試';
+      console.error('註冊 Action 捕捉錯誤:', errorMsg);
       throw new Error(errorMsg);
     }
   },
 
-  // 登入動作
+  // 登入動作 (同步優化結構)
   async login({ commit }, { email, password }) {
     try {
-      const response = await axios.post(`api/login`, { email, password });
-      const token = response.data.token;
+      const response = await axios.post(`/api/login`, { email, password });
+      const data = response.data;
+      const token = data.token;
 
-      // 使用 jwtDecode 解析 token
-      const decoded = jwtDecode(token);  // 解析 token 獲取 userId
-      const userId = decoded.userId;  // 從 token 中提取 userId
+      if (token) {
+        const decoded = jwtDecode(token);
+        commit('setToken', token);
+        commit('setUserId', decoded.userId);
+        sessionStorage.setItem('token', token);
+      }
 
-      // 儲存到 Vuex 和 sessionStorage
-      commit('setToken', token);
-      commit('setUser', response.data.user);
-      commit('setUserId', userId);  // 不再從 sessionStorage 儲存 userId，直接從 token 提取
-      sessionStorage.setItem('token', token);
-      sessionStorage.setItem('user', JSON.stringify(response.data.user));
+      if (data.user) {
+        commit('setUser', data.user);
+        sessionStorage.setItem('user', JSON.stringify(data.user));
+      }
 
-      return response.data.message;
+      return data.message || "登入成功";
     } catch (error) {
-      const errorMsg = error.response?.data?.message || '登入出錯，請稍後再試';
-      console.error('登入出錯:', errorMsg);
+      const errorMsg = error.response?.data?.message || error.response?.data || '登入出錯，請稍後再試';
       throw new Error(errorMsg);
     }
   },
@@ -87,6 +102,7 @@ const actions = {
         { account, avatar_url },
         {
           headers: {
+            'Authorization': `Bearer ${token}`, // 強制帶入最新 Token
             Authorization: `Bearer ${token}`, // 使用 Bearer Token 進行認證
           },
         }

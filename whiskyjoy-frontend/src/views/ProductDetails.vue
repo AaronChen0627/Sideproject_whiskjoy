@@ -1,37 +1,59 @@
 <template>
-  <div class="container my-5">
-    <div v-if="product" class="row">
-      <!-- 產品圖片 -->
-      <div class="col-md-6 text-center">
-        <img
-          :src="product.product_image_url"
-          alt="Product Image"
-          class="img-fluid rounded shadow"
+  <div class="product-detail-wrapper py-5">
+    <div class="container">
+      <div v-if="product" class="row align-items-center gx-lg-5">
+        <div class="col-md-6 mb-5 mb-md-0">
+          <div class="whisky-display-box">
+            <div class="back-glow"></div>
+            <img
+              :src="product.product_image_url"
+              alt="Product Image"
+              class="img-fluid whisky-main-img"
+            />
+          </div>
+        </div>
+
+        <div class="col-md-6 text-start">
+          <div class="whisky-info-card">
+            <span class="whisky-label">WHISKY SELECTION</span>
+            <h1 class="whisky-title mt-2">{{ product.product_name_zh }}</h1>
+            <p class="whisky-subtitle text-white-50">
+              {{ product.product_name_en }}
+            </p>
+
+            <div class="whisky-specs mt-5">
+              <div class="spec-row">
+                <span class="label">COUNTRY / 國家</span>
+                <span class="value">{{ product.country_name_zh }}</span>
+              </div>
+              <div class="spec-row">
+                <span class="label">REGION / 區域</span>
+                <span class="value">{{ product.region_name_zh || "N/A" }}</span>
+              </div>
+              <div class="spec-row">
+                <span class="label">CATEGORY / 種類</span>
+                <span class="value">{{ product.category_name_zh }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-else class="text-center py-5">
+        <div class="spinner-border text-amber" role="status"></div>
+        <p class="text-amber mt-3">細心品味，資料載入中...</p>
+      </div>
+
+      <div class="section-divider my-5"></div>
+
+      <div class="comment-wrapper">
+        <CommentSection
+          v-if="product"
+          :productId="product.id"
+          :currentUserId="currentUserId"
         />
       </div>
-
-      <!-- 產品詳細資料 -->
-      <div class="col-md-6">
-        <h2 class="display-4">{{ product.product_name_zh }}</h2>
-        <p class="lead"><strong>國家:</strong> {{ product.country_name_zh }}</p>
-        <p class="lead"><strong>區域:</strong> {{ product.region_name_zh }}</p>
-        <p class="lead">
-          <strong>種類:</strong> {{ product.category_name_zh }}
-        </p>
-      </div>
     </div>
-
-    <!-- 載入中提示 -->
-    <div v-else class="text-center">
-      <p class="lead">產品資料載入中...</p>
-    </div>
-
-    <!-- 評論區 -->
-    <CommentSection
-      v-if="product"
-      :productId="product.id"
-      :currentUserId="currentUserId"
-    />
   </div>
 </template>
 
@@ -53,7 +75,7 @@ export default {
       }
       return this.allProducts.find(
         (product) =>
-          product.product_name_en.replace(/\s+/g, "-") === this.productName
+          product.product_name_en.replace(/\s+/g, "-") === this.productName,
       );
     },
     currentUserId() {
@@ -66,7 +88,7 @@ export default {
       if (newVal.length > 0) {
         this.product = this.allProducts.find(
           (product) =>
-            product.product_name_en.replace(/\s+/g, "-") === this.productName
+            product.product_name_en.replace(/\s+/g, "-") === this.productName,
         );
       }
     },
@@ -81,13 +103,124 @@ export default {
 </script>
 
 <style scoped>
-.product-details img {
-  width: 100%;
-  max-width: 500px;
-  margin-bottom: 20px;
+/* 主背景：對齊深夜炭藍 */
+.product-detail-wrapper {
+  background-color: #1a1c23;
+  color: #fff;
+  min-height: 100vh;
 }
-.product-details h2 {
-  font-size: 2.5rem;
-  font-weight: bold;
+
+/* 左側圖片展示區 */
+.whisky-display-box {
+  position: relative;
+  background: radial-gradient(
+    circle at center,
+    rgba(226, 201, 151, 0.08) 0%,
+    transparent 70%
+  );
+  padding: 40px;
+  border-radius: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.whisky-main-img {
+  max-height: 500px;
+  object-fit: contain;
+  /* 增加陰影讓酒瓶有立體感 */
+  filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.5));
+  z-index: 2;
+}
+
+.back-glow {
+  position: absolute;
+  width: 250px;
+  height: 250px;
+  background-color: #e2c997;
+  filter: blur(120px);
+  opacity: 0.15;
+  z-index: 1;
+}
+
+/* 右側文字資訊 */
+.whisky-label {
+  color: #e2c997;
+  font-size: 0.75rem;
+  letter-spacing: 4px;
+  font-weight: 700;
+  border-bottom: 2px solid #e2c997;
+  padding-bottom: 5px;
+}
+
+.whisky-title {
+  font-size: 2.8rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+
+.whisky-subtitle {
+  font-size: 1.1rem;
+  font-style: italic;
+  letter-spacing: 1px;
+}
+
+/* 規格清單：仿精品排版 */
+.whisky-specs {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.spec-row {
+  display: flex;
+  flex-direction: column;
+  border-left: 2px solid rgba(226, 201, 151, 0.3);
+  padding-left: 15px;
+}
+
+.spec-row .label {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.4);
+  letter-spacing: 1px;
+}
+
+.spec-row .value {
+  font-size: 1.25rem;
+  color: #fff;
+  font-weight: 500;
+}
+
+/* 分隔線 */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    rgba(226, 201, 151, 0.3),
+    transparent
+  );
+}
+
+.text-amber {
+  color: #e2c997;
+}
+
+/* 評論區容器微調 */
+.comment-wrapper {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 20px;
+  padding: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* 響應式 */
+@media (max-width: 768px) {
+  .whisky-title {
+    font-size: 2rem;
+  }
+  .whisky-display-box {
+    padding: 20px;
+  }
 }
 </style>
