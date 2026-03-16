@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: aaron2k7au4a83
+      MYSQL_DATABASE: whiskeyjoy
+      MYSQL_USER: aaron
+      MYSQL_PASSWORD: aaron2k7au4a83
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./whiskyjoy_sql:/docker-entrypoint-initdb.d
+    networks:
+      - whisky-net
+
+  backend:
+    build: ./whiskyjoy-backend
+    restart: always
+    depends_on:
+      - db
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./whiskyjoy-backend/.env
+    environment:
+      - DB_HOST=db
+    volumes:
+      - ./whiskyjoy-backend/public/uploads:/app/public/uploads
+    networks:
+      - whisky-net
+
+  frontend:
+    build: ./whiskyjoy-frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - whisky-net
+
+networks:
+  whisky-net:
+    driver: bridge
+
+volumes:
+  mysql_data:

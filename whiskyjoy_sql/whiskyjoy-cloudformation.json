@@ -1,0 +1,195 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Resources": {
+      "WhiskyJoyVPC": {
+        "Type": "AWS::EC2::VPC",
+        "Properties": {
+          "CidrBlock": "10.0.0.0/16",
+          "EnableDnsSupport": true,
+          "EnableDnsHostnames": true
+        }
+      },
+      "WhiskyJoySubnet": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": {
+            "Ref": "WhiskyJoyVPC"
+          },
+          "CidrBlock": "10.0.1.0/24",
+          "AvailabilityZone": "ap-northeast-1a",
+          "MapPublicIpOnLaunch": true
+        }
+      },
+      "WhiskyJoyInternetGateway": {
+        "Type": "AWS::EC2::InternetGateway",
+        "Properties": {}
+      },
+      "WhiskyJoyAttachGateway": {
+        "Type": "AWS::EC2::VPCGatewayAttachment",
+        "Properties": {
+          "VpcId": {
+            "Ref": "WhiskyJoyVPC"
+          },
+          "InternetGatewayId": {
+            "Ref": "WhiskyJoyInternetGateway"
+          }
+        }
+      },
+      "WhiskyJoySecurityGroup": {
+        "Type": "AWS::EC2::SecurityGroup",
+        "Properties": {
+          "GroupDescription": "Allow inbound traffic for EC2 instance",
+          "VpcId": {
+            "Ref": "WhiskyJoyVPC"
+          },
+          "SecurityGroupIngress": [
+            {
+              "IpProtocol": "tcp",
+              "FromPort": "22",
+              "ToPort": "22",
+              "CidrIp": "0.0.0.0/0"
+            },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": "80",
+              "ToPort": "80",
+              "CidrIp": "0.0.0.0/0"
+            },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": "443",
+              "ToPort": "443",
+              "CidrIp": "0.0.0.0/0"
+            },
+            {
+              "IpProtocol": "tcp",
+              "FromPort": "3306",
+              "ToPort": "3306",
+              "CidrIp": "0.0.0.0/0"
+            }
+          ]
+        }
+      },
+      "WhiskyJoyEC2Instance": {
+        "Type": "AWS::EC2::Instance",
+        "Properties": {
+          "InstanceType": "t2.micro",
+          "ImageId": "ami-0ab02459752898a60",
+          "KeyName": "whiskyjoy-key", 
+          "SecurityGroupIds": [
+            {
+              "Ref": "WhiskyJoySecurityGroup"
+            }
+          ],
+          "AvailabilityZone": "ap-northeast-1a",
+          "SubnetId": {
+            "Ref": "WhiskyJoySubnet"
+          },
+          "Tags": [
+            {
+              "Key": "Name",
+              "Value": "whiskyjoy"
+            }
+          ]
+        }
+      },
+      "ElasticIP": {
+        "Type": "AWS::EC2::EIP",
+        "Properties": {}
+      },
+      "AssociateElasticIP": {
+        "Type": "AWS::EC2::EIPAssociation",
+        "Properties": {
+          "InstanceId": {
+            "Ref": "WhiskyJoyEC2Instance"
+          },
+          "EIP": {
+            "Ref": "ElasticIP"
+          }
+        }
+      },
+      "FrontendContainer": {
+        "Type": "AWS::ECS::TaskDefinition",
+        "Properties": {
+          "Family": "frontend-container",
+          "ContainerDefinitions": [
+            {
+              "Name": "frontend",
+              "Image": "node:14",
+              "Essential": true,
+              "Memory": 512,
+              "MemoryReservation": 256,
+              "PortMappings": [
+                {
+                  "ContainerPort": 8080,
+                  "HostPort": 80
+                }
+              ],
+              "Command": [
+                "sh",
+                "-c",
+                "npm install && npm run serve"
+              ]
+            }
+          ]
+        }
+      },
+      "BackendContainer": {
+        "Type": "AWS::ECS::TaskDefinition",
+        "Properties": {
+          "Family": "backend-container",
+          "ContainerDefinitions": [
+            {
+              "Name": "backend",
+              "Image": "node:14",
+              "Essential": true,
+              "Memory": 512,
+              "MemoryReservation": 256,
+              "PortMappings": [
+                {
+                  "ContainerPort": 3000,
+                  "HostPort": 3000
+                }
+              ],
+              "Command": [
+                "sh",
+                "-c",
+                "npm install && npm start"
+              ]
+            }
+          ]
+        }
+      },
+      "MySQLContainer": {
+        "Type": "AWS::ECS::TaskDefinition",
+        "Properties": {
+          "Family": "mysql-container",
+          "ContainerDefinitions": [
+            {
+              "Name": "mysql",
+              "Image": "mysql:5.7",
+              "Essential": true,
+              "Memory": 1024,
+              "MemoryReservation": 512,
+              "PortMappings": [
+                {
+                  "ContainerPort": 3306,
+                  "HostPort": 3306
+                }
+              ],
+              "Environment": [
+                {
+                  "Name": "MYSQL_ROOT_PASSWORD",
+                  "Value": "rootpassword"
+                },
+                {
+                  "Name": "MYSQL_DATABASE",
+                  "Value": "whiskyjoy"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  }
