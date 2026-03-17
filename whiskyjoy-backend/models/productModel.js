@@ -1,3 +1,4 @@
+const { v4: uuidv4 } = require('uuid'); // 1. 引入 UUID
 const db = require("../db");
 
 module.exports = {
@@ -9,20 +10,20 @@ module.exports = {
         p.product_name_zh, 
         p.product_name_en, 
         p.product_image_url,
-        c.country_name_zh AS country_name_zh,
-        c.country_name_en AS country_name_en,
-        r.region_name_zh AS region_name_zh,
-        r.region_name_en AS region_name_en,
-        ca.category_name_zh AS category_name_zh,
-        ca.category_name_en AS category_name_en,
-        b.brand_name_zh AS brand_name_zh,
-        b.brand_name_en AS brand_name_en,
+        c.country_name_zh,
+        c.country_name_en,
+        r.region_name_zh,
+        r.region_name_en,
+        ca.category_name_zh,
+        ca.category_name_en,
+        b.brand_name_zh,
+        b.brand_name_en,
         b.logo_url AS brand_logo_url
-      FROM Products p
-      LEFT JOIN Countries c ON p.country_id = c.id
-      LEFT JOIN Regions r ON p.region_id = r.id
-      LEFT JOIN Categories ca ON p.category_id = ca.id
-      LEFT JOIN Brands b ON p.brand_id = b.id;
+      FROM products p
+      LEFT JOIN countries c ON p.country_id = c.id
+      LEFT JOIN regions r ON p.region_id = r.id
+      LEFT JOIN categories ca ON p.category_id = ca.id
+      LEFT JOIN brands b ON p.brand_id = b.id;
     `;
     const [rows] = await db.execute(query);
     return rows;
@@ -30,7 +31,7 @@ module.exports = {
 
   // 刪除產品
   deleteProduct: async (id) => {
-    const query = `DELETE FROM Products WHERE id = ?`;
+    const query = `DELETE FROM products WHERE id = ?`;
     const [result] = await db.execute(query, [id]);
     return result;
   },
@@ -43,51 +44,72 @@ module.exports = {
         p.product_name_zh, 
         p.product_name_en, 
         p.product_image_url,
-        c.country_name_zh AS country_name_zh,
-        c.country_name_en AS country_name_en,
-        r.region_name_zh AS region_name_zh,
-        r.region_name_en AS region_name_en,
-        ca.category_name_zh AS category_name_zh,
-        ca.category_name_en AS category_name_en,
-        b.brand_name_zh AS brand_name_zh,
-        b.brand_name_en AS brand_name_en,
+        c.country_name_zh,
+        c.country_name_en,
+        r.region_name_zh,
+        r.region_name_en,
+        ca.category_name_zh,
+        ca.category_name_en,
+        b.brand_name_zh,
+        b.brand_name_en,
         b.logo_url AS brand_logo_url
-      FROM Products p
-      LEFT JOIN Countries c ON p.country_id = c.id
-      LEFT JOIN Regions r ON p.region_id = r.id
-      LEFT JOIN Categories ca ON p.category_id = ca.id
-      LEFT JOIN Brands b ON p.brand_id = b.id
+      FROM products p
+      LEFT JOIN countries c ON p.country_id = c.id
+      LEFT JOIN regions r ON p.region_id = r.id
+      LEFT JOIN categories ca ON p.category_id = ca.id
+      LEFT JOIN brands b ON p.brand_id = b.id
       WHERE p.id = ?;
     `;
     const [rows] = await db.execute(query, [id]);
-    return rows[0] || null; // 回傳單一產品或 null
+    return rows[0] || null;
   },
 
-  // 檢查產品是否已存在（根據名稱）
+  // 檢查產品是否已存在
   async findProductByName(product_name_zh, product_name_en) {
     const query = `
-      SELECT * FROM Products
+      SELECT id FROM products
       WHERE product_name_zh = ? OR product_name_en = ?
+      LIMIT 1
     `;
     const [results] = await db.execute(query, [product_name_zh, product_name_en]);
-    return results;
+    return results[0] || null; // 建議回傳單一物件或 null 較好判斷
   },
 
   // 根據名稱取得 ID
   async findIdByName(table, nameColumn, name) {
-    const query = `SELECT id FROM ${table} WHERE ${nameColumn} = ?`;
+    const query = `SELECT id FROM ${table.toLowerCase()} WHERE ${nameColumn} = ?`;
     const [results] = await db.execute(query, [name]);
     return results.length > 0 ? results[0].id : null;
   },
 
-  // 新增產品
+  // 新增產品 (修正：手動傳入產生的 UUID)
   async insertProduct(productData) {
+    const newId = uuidv4(); // 2. 產生 UUID
     const query = `
-      INSERT INTO Products (product_name_zh, product_name_en, product_image_url, country_id, region_id, category_id, brand_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO products (
+        id, 
+        product_name_zh, 
+        product_name_en, 
+        product_image_url, 
+        country_id, 
+        region_id, 
+        category_id, 
+        brand_id
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `;
-    const { product_name_zh, product_name_en, product_image_url, country_id, region_id, category_id, brand_id } = productData;
+    const { 
+      product_name_zh, 
+      product_name_en, 
+      product_image_url, 
+      country_id, 
+      region_id, 
+      category_id, 
+      brand_id 
+    } = productData;
+
     await db.execute(query, [
+      newId, // 3. 將 UUID 放入第一個問號
       product_name_zh,
       product_name_en,
       product_image_url,
@@ -96,12 +118,14 @@ module.exports = {
       category_id,
       brand_id,
     ]);
+
+    return newId; // 4. 回傳產生的 ID 給 Controller
   },
 
   // 更新產品
   async updateProduct(id, productData) {
     const query = `
-      UPDATE Products
+      UPDATE products
       SET product_name_zh = ?, product_name_en = ?, product_image_url = ?, country_id = ?, region_id = ?, category_id = ?, brand_id = ?
       WHERE id = ?
     `;

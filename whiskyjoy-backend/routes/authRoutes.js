@@ -1,20 +1,28 @@
 const express = require('express');
-const AuthController = require('../controllers/authController'); // 引入控制器
-const authMiddleware = require('../middleware/authMiddleware'); // 引入身份驗證中間件
-
 const router = express.Router();
+const AuthController = require('../controllers/authController');
+const authMiddleware = require('../middleware/authMiddleware');
+const upload = require('../middleware/upload');
 
-// 用戶註冊
+// 完整路徑：POST /api/auth/register
 router.post('/register', AuthController.register);
 
-// 用戶登入
+// 完整路徑：POST /api/auth/login
 router.post('/login', AuthController.login);
 
-// 更新個人資料
+// 完整路徑：POST /api/auth/upload
+router.post(
+  '/upload', 
+  authMiddleware.authenticateUser, 
+  upload.single('file'), 
+  AuthController.handleUpload
+);
+
+// 完整路徑：PUT /api/auth/profile
 router.put(
-  '/user/profile',
-  authMiddleware.authenticateUser,  // 使用 authenticateUser 中間件進行身份驗證
-  AuthController.updateProfile      // 如果身份驗證通過，則執行更新操作
+  '/profile',
+  authMiddleware.authenticateUser,
+  AuthController.updateProfile
 );
 
 module.exports = router;

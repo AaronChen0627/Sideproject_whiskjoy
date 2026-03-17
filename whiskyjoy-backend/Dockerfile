@@ -1,23 +1,23 @@
-# 建議使用 Node 18 以上，因為你的 mysql2 套件較新
-FROM node:18-alpine
+# 1. 使用輕量級的 node-slim
+FROM node:18-slim
 
-# 設定容器內的工作目錄
+# 2. 設定工作目錄
 WORKDIR /app
 
-# 複製 package.json 和 package-lock.json
+# 3. 複製依賴清單 (這裡不需要安裝 libvips-dev 了)
 COPY package*.json ./
 
-# 安裝依賴 (只安裝生產環境需要的)
-RUN npm install --production
+# 4. 安裝依賴 (單純的 JS 依賴安裝，非常快)
+RUN npm install
 
-# 複製所有代碼
+# 5. 複製所有程式碼
 COPY . .
 
-# 確保 uploads 資料夾存在於 public 之下
-RUN mkdir -p public/uploads
+# 6. 建立圖片儲存資料夾
+RUN mkdir -p public/uploads/avatars public/uploads/products
 
-# 暴露 3000 端口
+# 7. 暴露端口
 EXPOSE 3000
 
-# 啟動應用程式 (會執行 node ./bin/www)
+# 8. 啟動程式
 CMD ["npm", "start"]

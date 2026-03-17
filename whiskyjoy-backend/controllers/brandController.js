@@ -1,68 +1,50 @@
-const pool = require('../db'); // 資料庫連接
-
-// 檢查品牌是否存在
-const checkBrandExists = async (brand_name_zh, brand_name_en) => {
-  const query = `
-    SELECT id FROM Brands 
-    WHERE brand_name_zh = ? OR brand_name_en = ?
-  `;
-  const [rows] = await pool.query(query, [brand_name_zh, brand_name_en]);
-  return rows.length > 0;
-};
+const brandModel = require('../models/brandModel');
 
 // 1. 創建品牌
 exports.createBrand = async (req, res) => {
   const { brand_name_zh, brand_name_en, logo_url } = req.body;
 
   try {
-    // 檢查是否已存在相同品牌名稱
-    const exists = await checkBrandExists(brand_name_zh, brand_name_en);
+    const exists = await brandModel.checkBrandExists(brand_name_zh, brand_name_en);
     if (exists) {
-      return res.status(400).json({ error: 'Brand with the same name already exists' });
+      return res.status(400).json({ message: '此品牌名稱（中或英）已存在' });
     }
 
-    const [result] = await pool.query(
-      'INSERT INTO Brands (id, brand_name_zh, brand_name_en, logo_url) VALUES (UUID(), ?, ?, ?)',
-      [brand_name_zh, brand_name_en, logo_url]
-    );
+    const newId = await brandModel.createBrand({ brand_name_zh, brand_name_en, logo_url });
 
     res.status(201).json({
-      id: result.insertId,
-      brand_name_zh,
-      brand_name_en,
-      logo_url,
+      success: true,
+      message: '品牌創建成功',
+      brand: { id: newId, brand_name_zh, brand_name_en, logo_url }
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to create brand' });
+    res.status(500).json({ message: '無法創建品牌' });
   }
 };
 
 // 2. 取得所有品牌
 exports.getAllBrands = async (req, res) => {
   try {
-    const [brands] = await pool.query('SELECT * FROM Brands');
-    res.status(200).json(brands);
+    const brands = await brandModel.getAllBrands();
+    res.status(200).json({ success: true, brands });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to fetch brands' });
+    res.status(500).json({ message: '無法獲取品牌列表' });
   }
 };
 
 // 3. 取得單一品牌
 exports.getBrandById = async (req, res) => {
-  const { id } = req.params;
-
   try {
-    const [brand] = await pool.query('SELECT * FROM Brands WHERE id = ?', [id]);
-    if (brand.length === 0) {
-      return res.status(404).json({ error: 'Brand not found' });
+    const brand = await brandModel.getBrandById(req.params.id);
+    if (!brand) {
+      return res.status(404).json({ message: '找不到該品牌' });
     }
-
-    res.status(200).json(brand[0]);
+    res.status(200).json({ success: true, brand });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to fetch brand' });
+    res.status(500).json({ message: '獲取品牌失敗' });
   }
 };
 
@@ -72,45 +54,35 @@ exports.updateBrand = async (req, res) => {
   const { brand_name_zh, brand_name_en, logo_url } = req.body;
 
   try {
-    // 檢查是否已存在相同品牌名稱（排除當前品牌）
-    const query = `
-      SELECT id FROM Brands 
-      WHERE (brand_name_zh = ? OR brand_name_en = ?) AND id != ?
-    `;
-    const [rows] = await pool.query(query, [brand_name_zh, brand_name_en, id]);
-    if (rows.length > 0) {
-      return res.status(400).json({ error: 'Brand with the same name already exists' });
+    // 檢查名稱是否與其他品牌衝突
+    const exists = await brandModel.checkBrandExists(brand_name_zh, brand_name_en, id);
+    if (exists) {
+      return res.status(400).json({ message: '更新失敗：品牌名稱已存在' });
     }
 
-    const [result] = await pool.query(
-      'UPDATE Brands SET brand_name_zh = ?, brand_name_en = ?, logo_url = ? WHERE id = ?',
-      [brand_name_zh, brand_name_en, logo_url, id]
-    );
+    const result = await brandModel.updateBrand(id, { brand_name_zh, brand_name_en, logo_url });
 
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Brand not found' });
+      return res.status(404).json({ message: '品牌不存在' });
     }
 
-    res.status(200).json({ message: 'Brand updated successfully' });
+    res.status(200).json({ success: true, message: '品牌已成功更新' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to update brand' });
+    res.status(500).json({ message: '更新品牌失敗' });
   }
 };
 
 // 5. 刪除品牌
 exports.deleteBrand = async (req, res) => {
-  const { id } = req.params;
-
   try {
-    const [result] = await pool.query('DELETE FROM Brands WHERE id = ?', [id]);
+    const result = await brandModel.deleteBrand(req.params.id);
     if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Brand not found' });
+      return res.status(404).json({ message: '品牌不存在' });
     }
-
-    res.status(200).json({ message: 'Brand deleted successfully' });
+    res.status(200).json({ success: true, message: '品牌已成功刪除' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: 'Failed to delete brand' });
+    res.status(500).json({ message: '刪除品牌失敗' });
   }
 };

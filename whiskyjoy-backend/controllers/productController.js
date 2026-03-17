@@ -8,47 +8,76 @@ module.exports = {
       res.status(200).json(products);
     } catch (error) {
       console.error(error);
-      res.status(500).json({ message: "Error fetching products", error });
+      res.status(500).json({ message: "獲取產品清單失敗", error });
+    }
+  },
+
+  // 根據 ID 獲取單一產品
+  getProductById: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const product = await productModel.getProductById(id);
+      
+      if (product) {
+        res.status(200).json(product);
+      } else {
+        res.status(404).json({ message: "找不到該產品" });
+      }
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "獲取產品失敗", error });
     }
   },
 
   // 刪除產品
-deleteProduct: async (req, res) => {
-    const { id } = req.params;
-    const product = await productModel.getProductById(id);
+  deleteProduct: async (req, res) => {
+    try {
+      const { id } = req.params;
+      const product = await productModel.getProductById(id);
   
-    if (!product) {
-      return res.status(404).json({ message: "Product not found" });
+      if (!product) {
+        return res.status(404).json({ message: "產品不存在" });
+      }
+  
+      await productModel.deleteProduct(id);
+      res.status(200).json({ message: "產品已成功刪除" });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "刪除產品失敗", error });
     }
-  
-    await productModel.deleteProduct(id);
-    res.status(200).json({ message: "Product deleted successfully" });
-
   },
 
   // 新增產品
   createProduct: async (req, res) => {
     try {
-      const { product_name_zh, product_name_en, product_image_url, country_id, region_id, category_id, brand_id } = req.body;
+      const { 
+        product_name_zh, 
+        product_name_en, 
+        product_image_url, 
+        country_id, 
+        region_id, 
+        category_id, 
+        brand_id 
+      } = req.body;
 
-      // 檢查是否有重複名稱
+      // 1. 檢查是否有重複名稱 (Model 已改為回傳物件或 null)
       const existingProduct = await productModel.findProductByName(product_name_zh, product_name_en);
-      if (existingProduct.length > 0) {
-        return res.status(400).json({ message: "產品名稱中文或英文已存在" });
+      if (existingProduct) {
+        return res.status(400).json({ message: "產品名稱（中/英）已存在" });
       }
 
-      // 找出相關 ID
-      const countryId = await productModel.findIdByName("Countries", "country_name_zh", country_id);
-      const regionId = region_id ? await productModel.findIdByName("Regions", "region_name_zh", region_id) : null;
-      const categoryId = await productModel.findIdByName("Categories", "category_name_zh", category_id);
-      const brandId = await productModel.findIdByName("Brands", "brand_name_zh", brand_id);
+      // 2. 找出相關 ID (修正表名為小寫，確保對應 SQL)
+      const countryId = await productModel.findIdByName("countries", "country_name_zh", country_id);
+      const categoryId = await productModel.findIdByName("categories", "category_name_zh", category_id);
+      const brandId = await productModel.findIdByName("brands", "brand_name_zh", brand_id);
+      const regionId = region_id ? await productModel.findIdByName("regions", "region_name_zh", region_id) : null;
 
       if (!countryId || !categoryId || !brandId) {
-        return res.status(400).json({ message: "無效的 country_id, category_id 或 brand_id" });
+        return res.status(400).json({ message: "無效的國家、分類或品牌資訊" });
       }
 
-      // 插入產品
-      await productModel.insertProduct({
+      // 3. 插入產品 (insertProduct 會回傳新產生的 UUID)
+      const newId = await productModel.insertProduct({
         product_name_zh,
         product_name_en,
         product_image_url,
@@ -58,7 +87,10 @@ deleteProduct: async (req, res) => {
         brand_id: brandId,
       });
 
-      res.status(201).json({ message: "產品新增成功" });
+      res.status(201).json({ 
+        message: "產品新增成功", 
+        id: newId 
+      });
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: "伺服器錯誤", error });
@@ -69,16 +101,24 @@ deleteProduct: async (req, res) => {
   updateProduct: async (req, res) => {
     try {
       const { id } = req.params;
-      const { product_name_zh, product_name_en, product_image_url, country_id, region_id, category_id, brand_id } = req.body;
+      const { 
+        product_name_zh, 
+        product_name_en, 
+        product_image_url, 
+        country_id, 
+        region_id, 
+        category_id, 
+        brand_id 
+      } = req.body;
 
-      // 找出相關 ID
-      const countryId = await productModel.findIdByName("Countries", "country_name_zh", country_id);
-      const regionId = region_id ? await productModel.findIdByName("Regions", "region_name_zh", region_id) : null;
-      const categoryId = await productModel.findIdByName("Categories", "category_name_zh", category_id);
-      const brandId = await productModel.findIdByName("Brands", "brand_name_zh", brand_id);
+      // 找出相關 ID (修正為小寫)
+      const countryId = await productModel.findIdByName("countries", "country_name_zh", country_id);
+      const categoryId = await productModel.findIdByName("categories", "category_name_zh", category_id);
+      const brandId = await productModel.findIdByName("brands", "brand_name_zh", brand_id);
+      const regionId = region_id ? await productModel.findIdByName("regions", "region_name_zh", region_id) : null;
 
       if (!countryId || !categoryId || !brandId) {
-        return res.status(400).json({ message: "無效的 country_id, category_id 或 brand_id" });
+        return res.status(400).json({ message: "無效的國家、分類或品牌資訊" });
       }
 
       // 更新產品
@@ -96,26 +136,6 @@ deleteProduct: async (req, res) => {
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: "伺服器錯誤", error });
-    }
-  },
-   // 根據 ID 獲取單一產品
-   getProductById: async (req, res) => {
-    try {
-      // 從 URL 中取得 id
-      const productId = req.params.id;
-      
-      // 呼叫模型層的方法獲取產品資料
-      const product = await productModel.getProductById(productId);
-      
-      // 如果產品存在，返回產品資料
-      if (product) {
-        res.status(200).json(product);
-      } else {
-        res.status(404).json({ message: "Product not found" });
-      }
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Error fetching product", error });
     }
   },
 };
