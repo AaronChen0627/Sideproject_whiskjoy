@@ -24,6 +24,7 @@ const state = {
 
 const getters = {
   isAuthenticated: (state) => !!state.token,
+  user: (state) => state.user,
   currentUser: (state) => state.user,
   // 💡 方便前端補全圖片路徑的 Getter
   fullAvatarUrl: (state) => {
@@ -47,26 +48,29 @@ const actions = {
   },
 
   // 2. 登入
-  async login({ commit }, { email, password }) {
-    try {
-      const response = await api.post(`/api/auth/login`, { email, password });
-      const { token, user } = response.data;
+// store/auth.js
+async login({ commit }, { email, password }) {
+  try {
+    const response = await api.post(`/api/auth/login`, { email, password });
+    const data = response.data; // 這裡包含 success, token, user, message
 
-      if (token) {
-        const decoded = jwtDecode(token);
-        sessionStorage.setItem('token', token);
-        commit('setToken', token);
-        commit('setUserId', decoded.id);
-      }
-      if (user) {
-        sessionStorage.setItem('user', JSON.stringify(user));
-        commit('setUser', user);
-      }
-      return response.data.message;
-    } catch (error) {
-      throw new Error(error.response?.data?.message || '登入失敗');
+    if (data.token) {
+      const decoded = jwtDecode(data.token);
+      sessionStorage.setItem('token', data.token);
+      commit('setToken', data.token);
+      commit('setUserId', decoded.id);
     }
-  },
+    if (data.user) {
+      sessionStorage.setItem('user', JSON.stringify(data.user));
+      commit('setUser', data.user);
+    }
+    
+    // 💡 關鍵：回傳整個 data，這樣元件才能拿到 response.user
+    return data; 
+  } catch (error) {
+    throw new Error(error.response?.data?.message || '登入失敗');
+  }
+},
 
   // 3. 登出
   logout({ commit }) {

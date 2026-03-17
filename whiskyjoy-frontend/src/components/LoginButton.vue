@@ -1,7 +1,11 @@
 <template>
   <div>
     <div v-if="isAuthenticated">
-      <img :src="userAvatar" alt="頭像" class="navbar-avatar" />
+      <img
+        :src="fullAvatarUrl || require('@/assets/logo.png')"
+        alt="頭像"
+        class="navbar-avatar"
+      />
     </div>
     <div v-else>
       <router-link to="/login" class="btn btn-warning"> 登入/註冊 </router-link>
@@ -14,7 +18,8 @@ import { mapGetters } from "vuex";
 
 export default {
   computed: {
-    ...mapGetters(["isAuthenticated", "userAvatar"]),
+    // 💡 名稱要跟 Vuex 裡的 getters 完全一致
+    ...mapGetters(["isAuthenticated", "fullAvatarUrl"]),
   },
 };
 </script>

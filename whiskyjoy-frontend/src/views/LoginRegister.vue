@@ -117,9 +117,9 @@ export default {
     return {
       email: "",
       password: "",
-      isRegister: false, // 控制模式
+      isRegister: false,
       errorMessage: "",
-      successMessage: "", // [關鍵修改] 用來控制成功提示的顯示
+      successMessage: "",
       isLoading: false,
     };
   },
@@ -130,69 +130,57 @@ export default {
 
       try {
         const action = this.isRegister ? "register" : "login";
-        // 這裡的 response 必須是後端回傳的完整 JSON 物件
+
+        // 💡 這裡拿到的 response 就是 Action 回傳的 data 物件
         const response = await this.$store.dispatch(action, {
           email: this.email,
           password: this.password,
         });
 
         if (this.isRegister) {
-          this.successMessage =
-            "註冊成功！我們已為您準備好筆記本，請直接輸入密碼登入。";
+          this.successMessage = "註冊成功！請登入。";
           this.isRegister = false;
           this.password = "";
-          this.isLoading = false;
           return;
         }
 
-        // --- 登入成功跳轉邏輯 (完全使用資料判斷) ---
-        // 確保我們拿到了 user 資料 (依照你的後端結構是 response.user)
-        const userData = response.user;
+        // --- 🚀 修正跳轉判斷 ---
+        // 優先從 response 拿，拿不到再從 state 拿（雙重保險）
+        const userData = response?.user || this.$store.state.user;
 
         if (userData) {
-          // 1. 優先判斷是否為 Admin
           if (userData.role === "admin") {
             this.$router.push("/add-product");
             return;
           }
 
-          // 2. 一般用戶判斷資料是否齊全
-          // 條件：必須有 account 且不能是預設的 '新用戶'，且必須有頭像
-          const hasAccount = userData.account && userData.account !== "新用戶";
-          const hasAvatar =
-            userData.avatar_url !== null && userData.avatar_url !== "";
+          // 💡 判斷邏輯：只要 account 和 avatar_url 「都有值」就進 Note
+          const hasAccount = !!userData.account;
+          const hasAvatar = !!userData.avatar_url;
 
           if (hasAccount && hasAvatar) {
-            // 資料齊全 -> 去筆記頁
             this.$router.push("/note");
           } else {
-            // 資料不齊 (沒改名字或沒上傳頭像) -> 去更新資料頁
             this.$router.push("/update-profile");
           }
         } else {
-          // 防呆：萬一沒拿到 userData
           this.$router.push("/update-profile");
         }
       } catch (error) {
-        console.error("Auth Error:", error);
-        const rawMessage = error.message || "認證過程中發生錯誤";
-        this.errorMessage = rawMessage.replace(/^Error:\s*/, "");
+        this.errorMessage = error.message;
       } finally {
         this.isLoading = false;
       }
     },
-    // [關鍵新增] 用戶點擊「立刻登入」後的邏輯
     closeSuccessAndLogin() {
-      this.successMessage = ""; // 關閉提示
-      // 聚焦到密碼輸入框（可選，增加 UI 互動感）
-      // this.$refs.passwordInput.focus();
+      this.successMessage = "";
     },
     toggleForm() {
       this.isRegister = !this.isRegister;
       this.email = "";
       this.password = "";
       this.errorMessage = "";
-      this.successMessage = ""; // 切換時也清空成功訊息
+      this.successMessage = "";
     },
     clearError() {
       this.errorMessage = "";
@@ -202,10 +190,10 @@ export default {
 </script>
 
 <style scoped>
-/* --- [關鍵新增] 自定義提示元件 CSS --- */
+/* 提示彈窗 CSS */
 .success-popup-container {
   position: absolute;
-  z-index: 99; /* 確保在最上層 */
+  z-index: 99;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -216,18 +204,17 @@ export default {
 .success-popup-card {
   max-width: 400px;
   width: 100%;
-  /* 繼承原有的琥珀金毛玻璃質感 */
-  background-color: rgba(0, 0, 0, 0.45); /* 比註冊卡片稍深，增加層次 */
-  border: 2px solid rgba(226, 201, 151, 0.8); /* 琥珀金細邊框，加強金色感 */
+  background-color: rgba(0, 0, 0, 0.45);
+  border: 2px solid rgba(226, 201, 151, 0.8);
   border-radius: 24px;
-  backdrop-filter: blur(25px); /* 更強的毛玻璃 */
+  backdrop-filter: blur(25px);
   -webkit-backdrop-filter: blur(25px);
-  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.7); /* 更沉重的陰影 */
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.7);
 }
 
 .success-icon {
   font-size: 3rem;
-  color: #e2c997; /* 金色 Check */
+  color: #e2c997;
   text-shadow: 0 0 15px rgba(226, 201, 151, 0.6);
   display: block;
 }
@@ -245,8 +232,7 @@ export default {
   letter-spacing: 0.5px;
 }
 
-/* --- 動畫 (Transition) --- */
-/* 卡片 fade 效果 */
+/* 動畫 */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.4s ease;
@@ -256,7 +242,6 @@ export default {
   opacity: 0;
 }
 
-/* 提示 pop-in 效果 */
 .pop-in-enter-active,
 .pop-in-leave-active {
   transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -267,7 +252,7 @@ export default {
   transform: scale(0.8);
 }
 
-/* --- 原有的 UI 樣式 (保持不變) --- */
+/* UI 基本樣式 */
 .login-auth-container {
   position: relative;
   width: 100%;
@@ -331,7 +316,6 @@ export default {
   border-radius: 12px;
   font-size: 0.9rem;
   font-weight: 500;
-  animation: fadeInDown 0.4s ease;
 }
 .whisky-input {
   background: rgba(255, 255, 255, 0.08) !important;
