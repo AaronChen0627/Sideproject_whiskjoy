@@ -5,8 +5,10 @@ import ResetPassword from '@/views/ResetPassword.vue';
 import ProductDetails from '@/views/ProductDetails.vue';
 import AboutView from '@/views/AboutView.vue';
 import LoginRegister from '@/views/LoginRegister.vue';
-import UpdateProfile from '@/views/UpdateProfile.vue'; // 引入新頁面
 import AddProduct from '@/views/AddProduct.vue'; // 新增 AddProduct 頁面
+import Addlist from '@/views/Addlist.vue'
+import CreateProfile from '@/views/CreateProfile.vue';
+import UpdateProfile from '@/views/UpdateProfile.vue';
 
 const routes = [
   {
@@ -43,15 +45,27 @@ const routes = [
     meta: { requiresAuth: false }, // 不需要认证
   },
   {
+    path: '/create-profile', // 新增的路由
+    name: 'create-profile',
+    component: CreateProfile, // 綁定 CreateProfile 頁面
+    meta: { requiresAuth: false }, // 不需要身份驗證
+  },
+    {
     path: '/update-profile', // 新增的路由
     name: 'update-profile',
-    component: UpdateProfile, // 綁定 UpdateProfile 頁面
+    component: UpdateProfile, // 綁定 CreateProfile 頁面
     meta: { requiresAuth: false }, // 不需要身份驗證
   },
   {
     path: '/add-product', // 新增 AddProduct 路由
     name: 'add-product',
     component: AddProduct, // 綁定 AddProduct 頁面
+    meta: { requiresAuth: true }, // 需要身份驗證
+  },
+  {
+    path: '/add-list', 
+    name: 'add-list',
+    component: Addlist, 
     meta: { requiresAuth: true }, // 需要身份驗證
   },
 ];
@@ -63,12 +77,14 @@ const router = createRouter({
 
 // 路由守衛，檢查是否需要認證
 router.beforeEach((to, from, next) => {
-  const token = sessionStorage.getItem('userToken'); // 獲取存儲的 token
+  // 💡 修正：對齊 Vuex 存入的名稱 "token"
+  const token = sessionStorage.getItem('token'); 
+  
   if (to.meta.requiresAuth && !token) {
-    // 如果需要身份驗證且沒有 token，跳轉到登入頁
+    // 如果該頁面需要權限但沒有 token，導向登入
     next('/login');
   } else {
-    // 否則允許導航
+    // 允許通過
     next();
   }
 });

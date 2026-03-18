@@ -50,5 +50,20 @@ const authenticateUser = async (req, res, next) => {
     return res.status(401).json({ message: '認證無效' });
   }
 };
+const isAdmin = (req, res, next) => {
+  // 檢查 req.user 是否存在（確保已經過 authenticateUser）
+  // 檢查 role 是否為 'admin' (對應你 SQL Schema 的 enum)
+  if (req.user && req.user.role === 'admin') {
+    return next(); // 是管理員，放行
+  }
 
-module.exports = { authenticateUser };
+  // 若不是管理員，回傳 403 Forbidden
+  return res.status(403).json({ 
+    success: false, 
+    message: '權限不足，此操作僅限管理員執行' 
+  });
+};
+module.exports = { 
+  authenticateUser, 
+  isAdmin 
+};

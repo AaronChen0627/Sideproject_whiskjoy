@@ -1,13 +1,12 @@
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
-// --- 💡 建立 Axios 實例並配置攔截器 ---
+// --- 💡 建立 Axios 實例 ---
 const api = axios.create({
-  // 在開發環境(8080)會透過 vue.config.js 代理，生產環境則直接發送
   baseURL: '/' 
 });
 
-// 請求攔截器：每次發送 API 前自動塞入 Token
+// 請求攔截器
 api.interceptors.request.use(config => {
   const token = sessionStorage.getItem('token');
   if (token) {
@@ -26,11 +25,10 @@ const getters = {
   isAuthenticated: (state) => !!state.token,
   user: (state) => state.user,
   currentUser: (state) => state.user,
-  // 💡 方便前端補全圖片路徑的 Getter
+  // 💡 自動補全路徑的 Getter (這在 Navbar 頭像很有用)
   fullAvatarUrl: (state) => {
     if (!state.user?.avatar_url) return null;
     if (state.user.avatar_url.startsWith('http')) return state.user.avatar_url;
-    // 開發環境補上 3000 埠，生產環境(Nginx)則不用
     const baseUrl = process.env.NODE_ENV === 'development' ? 'http://localhost:3000' : '';
     return `${baseUrl}${state.user.avatar_url}`;
   }
@@ -48,43 +46,58 @@ const actions = {
   },
 
   // 2. 登入
-// store/auth.js
-async login({ commit }, { email, password }) {
-  try {
-    const response = await api.post(`/api/auth/login`, { email, password });
-    const data = response.data; // 這裡包含 success, token, user, message
-
-    if (data.token) {
-      const decoded = jwtDecode(data.token);
-      sessionStorage.setItem('token', data.token);
-      commit('setToken', data.token);
-      commit('setUserId', decoded.id);
+  async login({ commit }, { email, password }) {
+    try {
+      const response = await api.post(`/api/auth/login`, { email, password });
+      const data = response.data;
+      if (data.token) {
+        const decoded = jwtDecode(data.token);
+        sessionStorage.setItem('token', data.token);
+        commit('setToken', data.token);
+        commit('setUserId', decoded.id);
+      }
+      if (data.user) {
+        sessionStorage.setItem('user', JSON.stringify(data.user));
+        commit('setUser', data.user);
+      }
+      return data; 
+    } catch (error) {
+      throw new Error(error.response?.data?.message || '登入失敗');
     }
-    if (data.user) {
-      sessionStorage.setItem('user', JSON.stringify(data.user));
-      commit('setUser', data.user);
-    }
-    
-    // 💡 關鍵：回傳整個 data，這樣元件才能拿到 response.user
-    return data; 
-  } catch (error) {
-    throw new Error(error.response?.data?.message || '登入失敗');
-  }
-},
+  },
 
-  // 3. 登出
+  // 💡 3. 新增：獲取用戶最新資料 (解決預先載入問題)
+  async getUserInfo({ commit }) {
+    try {
+      // 對接你剛剛在後端改好的 /userinfo 路由
+      const response = await api.get('/api/auth/userinfo');
+      
+      if (response.data.success) {
+        const userData = response.data.user;
+        // 更新 Vuex 與 SessionStorage 保持同步
+        commit('setUser', userData);
+        sessionStorage.setItem('user', JSON.stringify(userData));
+        return userData;
+      }
+    } catch (error) {
+      console.error('getUserInfo Error:', error);
+      throw error;
+    }
+  },
+
+  // 4. 登出
   logout({ commit }) {
     sessionStorage.removeItem('token');
     sessionStorage.removeItem('user');
     commit('clearAuth');
   },
 
-  // 4. 更新用戶資料
+  // 5. 更新用戶資料
   async updateUserProfile({ commit, state }, { account, avatar_url }) {
     try {
-      // 使用配置了攔截器的 api 實例，會自動帶上 Authorization Header
       const response = await api.put('/api/auth/profile', { account, avatar_url });
       
+      // 更新後的資料
       const updatedUser = {
         ...state.user,
         account,
@@ -95,7 +108,6 @@ async login({ commit }, { email, password }) {
       sessionStorage.setItem('user', JSON.stringify(updatedUser));
       return response.data.message;
     } catch (error) {
-      // 💡 如果報「未提供認證標記」，會在這裡被捕獲
       throw new Error(error.response?.data?.message || '更新資料失敗');
     }
   },
@@ -113,6 +125,7 @@ const mutations = {
 };
 
 export default {
+  // 注意：如果你在 store/index.js 是用 modules 引入的，這裡可能需要 namespaced: true
   state,
   getters,
   actions,

@@ -43,7 +43,7 @@ export default {
       }
     },
     redirectToProfile() {
-      this.$router.push("/update-profile");
+      this.$router.push("/create-profile");
     },
   },
 };

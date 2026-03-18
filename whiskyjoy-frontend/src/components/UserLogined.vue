@@ -1,5 +1,5 @@
 <template>
-  <div class="user-info">
+  <div class="user-info" @click.stop>
     <div class="avatar-wrapper" @click="toggleDropdown">
       <img
         v-if="user && user.avatar_url"
@@ -7,20 +7,34 @@
         alt="Avatar"
         class="user-avatar"
       />
-
       <div v-else class="avatar-placeholder">
         {{ userInitial }}
       </div>
     </div>
 
-    <span class="user-account ms-2" v-if="user">{{
-      user.account || "User"
-    }}</span>
+    <span class="user-account ms-2" v-if="user">
+      {{ user.account || "User" }}
+    </span>
 
     <transition name="fade">
       <div v-show="dropdownVisible" class="dropdown-custom shadow-lg">
         <div class="dropdown-header">帳戶管理</div>
-        <router-link to="/profile" class="dropdown-item">個人資料</router-link>
+        <router-link to="/update-profile" class="dropdown-item"
+          >個人資料</router-link
+        >
+
+        <template v-if="user && user.role === 'admin'">
+          <div class="dropdown-divider"></div>
+          <div class="dropdown-header">管理專區</div>
+
+          <router-link to="/add-list" class="dropdown-item">
+            新增分類及列表
+          </router-link>
+          <router-link to="/add-product" class="dropdown-item">
+            新增品項
+          </router-link>
+        </template>
+
         <div class="dropdown-divider"></div>
         <button @click="logout" class="dropdown-item logout-text">登出</button>
       </div>
@@ -30,6 +44,7 @@
 
 <script>
 export default {
+  name: "UserInfo",
   props: {
     user: {
       type: Object,
@@ -53,10 +68,20 @@ export default {
     toggleDropdown() {
       this.dropdownVisible = !this.dropdownVisible;
     },
+    closeDropdown() {
+      this.dropdownVisible = false;
+    },
     logout() {
       this.$store.dispatch("logout");
       this.$router.push("/login");
     },
+  },
+  // 監聽全域點擊事件，點擊外面時關閉選單
+  mounted() {
+    window.addEventListener("click", this.closeDropdown);
+  },
+  beforeUnmount() {
+    window.removeEventListener("click", this.closeDropdown);
   },
 };
 </script>
@@ -67,6 +92,7 @@ export default {
   align-items: center;
   position: relative;
   cursor: pointer;
+  user-select: none;
 }
 
 /* 頭像外框與發光效果 */
@@ -91,12 +117,12 @@ export default {
   object-fit: cover;
 }
 
-/* 沒頭貼時的灰色圓圈樣式 */
+/* 沒頭貼時的樣式 */
 .avatar-placeholder {
   width: 100%;
   height: 100%;
-  background-color: #444; /* 深灰色背景 */
-  color: #e2c997; /* 金色文字 */
+  background-color: #444;
+  color: #e2c997;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -110,12 +136,12 @@ export default {
   font-size: 0.9rem;
 }
 
-/* 下拉選單美化 (毛玻璃) */
+/* 下拉選單 (毛玻璃) */
 .dropdown-custom {
   position: absolute;
   top: 55px;
   right: 0;
-  background: rgba(26, 26, 26, 0.95); /* 深色背景 */
+  background: rgba(26, 26, 26, 0.95);
   backdrop-filter: blur(10px);
   border: 1px solid rgba(226, 201, 151, 0.3);
   border-radius: 12px;
@@ -143,6 +169,7 @@ export default {
   text-align: left;
   font-size: 0.9rem;
   transition: all 0.2s;
+  cursor: pointer;
 }
 
 .dropdown-item:hover {
@@ -151,7 +178,7 @@ export default {
 }
 
 .logout-text {
-  color: #ff4d4d; /* 登出文字用紅色稍微警示 */
+  color: #ff4d4d;
 }
 
 .dropdown-divider {

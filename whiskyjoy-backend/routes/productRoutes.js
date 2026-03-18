@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const productController = require('../controllers/productController');
+const upload = require('../middleware/upload'); // 你的 multer 配置
 
 // 獲取所有產品
 router.get('/', productController.getAllProducts);
@@ -18,3 +19,6 @@ router.put('/:id', productController.updateProduct);
 router.delete('/:id', productController.deleteProduct);
 
 module.exports = router;
+
+// 💡 產品圖片上傳
+router.post('/upload', upload.single('file'), productController.handleProductUpload);

@@ -7,7 +7,8 @@ const brandsRouter = require('./routes/brandRoutes');
 const productRoutes = require('./routes/productRoutes');
 const authRoutes = require('./routes/authRoutes');
 const commentRoutes = require('./routes/commentRoutes');
-
+const categoryRoutes = require('./routes/categoryRoutes');
+const countryRoutes = require('./routes/countryRoutes');  
 const app = express();
 
 // 1. 中介軟體配置
@@ -29,6 +30,8 @@ app.use('/api/brands', brandsRouter);
 app.use('/api/products', productRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/comments', commentRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/Countries', countryRoutes);
 
 app.get('/', (req, res) => res.send('妳好，香吟老師'));
 

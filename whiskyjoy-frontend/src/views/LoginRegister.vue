@@ -161,10 +161,10 @@ export default {
           if (hasAccount && hasAvatar) {
             this.$router.push("/note");
           } else {
-            this.$router.push("/update-profile");
+            this.$router.push("/create-profile");
           }
         } else {
-          this.$router.push("/update-profile");
+          this.$router.push("/create-profile");
         }
       } catch (error) {
         this.errorMessage = error.message;

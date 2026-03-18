@@ -25,4 +25,17 @@ router.put(
   AuthController.updateProfile
 );
 
+// 獲取使用者資訊 (用你指定的 userinfo)
+router.get(
+  '/userinfo', 
+  authMiddleware.authenticateUser, 
+  AuthController.getCurrentUser
+);
+
+// 更新 Profile
+router.put(
+  '/profile',
+  authMiddleware.authenticateUser,
+  AuthController.updateProfile
+);
 module.exports = router;

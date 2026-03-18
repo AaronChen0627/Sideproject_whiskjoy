@@ -8,7 +8,7 @@
       <div class="profile-card p-4 p-md-5">
         <div class="text-center mb-4">
           <h2 class="auth-title fw-bold">PROFILE SETTINGS</h2>
-          <p class="auth-subtitle text-white-50">修改您的威士忌筆記個人資料</p>
+          <p class="auth-subtitle text-white-50">完善您的威士忌筆記帳戶</p>
         </div>
 
         <div class="avatar-preview-section text-center mb-5">
@@ -20,7 +20,7 @@
           >
             <img
               v-if="avatarUrl"
-              :src="getFullUrl(avatarUrl)"
+              :src="avatarUrl"
               alt="Preview"
               class="preview-img"
             />
@@ -79,7 +79,7 @@
                 class="spinner-border spinner-border-sm me-2"
               ></span>
               <span class="fw-bold ls-1">{{
-                loading ? "處理中..." : "儲存修改"
+                loading ? "處理中..." : "儲存並進入我的筆記"
               }}</span>
             </button>
           </div>
@@ -104,49 +104,29 @@ export default {
   },
   computed: {
     ...mapState({
-      user: (state) => (state.auth ? state.auth.user : state.user),
+      user: (state) => state.user,
     }),
   },
   watch: {
-    // 核心：監聽 Vuex 中的 user 資料，一旦有值就填入表單
     user: {
       handler(newVal) {
-        console.log("Vuex User Data Changed:", newVal);
         if (newVal) {
-          this.account = newVal.account || "";
-          this.avatarUrl = newVal.avatar_url || "";
+          // 初始化載入現有資料
+          if (!this.account) this.account = newVal.account || "";
+          if (!this.avatarUrl) this.avatarUrl = newVal.avatar_url || "";
         }
       },
-      immediate: true, // 組件建立時立即執行一次
-      deep: true,
+      immediate: true,
     },
-  },
-  async mounted() {
-    // 防呆：如果頁面重整導致 Vuex 丟失 user 資料，主動去後端抓一次
-    if (!this.user || !this.user.account) {
-      try {
-        await this.$store.dispatch("getUserInfo");
-      } catch (error) {
-        console.error("無法同步用戶資料:", error);
-      }
-    }
   },
   methods: {
     ...mapActions(["updateUserProfile"]),
-
-    // 處理圖片完整 URL (解決開發環境 localhost:3000 問題)
-    getFullUrl(path) {
-      if (!path) return "";
-      if (path.startsWith("http")) return path;
-      const baseUrl =
-        process.env.NODE_ENV === "development" ? "http://localhost:3000" : "";
-      return `${baseUrl}${path}`;
-    },
 
     async handleFileUpload(event) {
       const file = event.target.files[0];
       if (!file) return;
 
+      // 檢查檔案大小 (前端初步過濾)
       if (file.size > 2 * 1024 * 1024) {
         this.isError = true;
         this.statusMsg = "檔案不能超過 2MB";
@@ -154,13 +134,15 @@ export default {
       }
 
       this.loading = true;
-      this.statusMsg = "正在上傳圖片...";
+      this.statusMsg = "正在處理圖片...";
 
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", file); // 💡 注意：對齊後端 upload.single('file')
 
       try {
         const savedToken = sessionStorage.getItem("token");
+
+        // 發送至後端 API
         const response = await this.$axios.post("/api/auth/upload", formData, {
           headers: {
             "Content-Type": "multipart/form-data",
@@ -169,11 +151,12 @@ export default {
         });
 
         if (response.data.success) {
-          this.avatarUrl = response.data.url;
+          this.avatarUrl = response.data.url; // 拿到伺服器回傳的路徑
           this.isError = false;
           this.statusMsg = "圖片上傳成功！";
         }
       } catch (error) {
+        console.error("上傳失敗:", error);
         this.isError = true;
         this.statusMsg = error.response?.data?.message || "圖片上傳失敗";
       } finally {
@@ -184,25 +167,26 @@ export default {
     async updateProfile() {
       if (!this.account.trim()) {
         this.isError = true;
-        this.statusMsg = "名稱不能為空";
+        this.statusMsg = "帳號名稱不能為空";
         return;
       }
 
       this.loading = true;
       try {
-        // 更新資料庫與 Vuex
+        // 呼叫 Vuex Action 更新資料庫中的 Profile
         await this.updateUserProfile({
           account: this.account,
           avatar_url: this.avatarUrl,
         });
 
         this.isError = false;
-        this.statusMsg = "修改成功！即將回到筆記首頁...";
+        this.statusMsg = "更新成功！即將進入筆記...";
 
-        setTimeout(() => this.$router.push("/note"), 1500);
+        // 延遲 1 秒後導向主頁
+        setTimeout(() => this.$router.push("/note"), 1000);
       } catch (error) {
         this.isError = true;
-        this.statusMsg = error.message || "修改失敗";
+        this.statusMsg = error.message || "更新失敗";
       } finally {
         this.loading = false;
       }
@@ -212,13 +196,14 @@ export default {
 </script>
 
 <style scoped>
-/* 保持原本的 WhiskyJoy 風格樣式 */
+/* 基本佈局 */
 .profile-page-wrapper {
   position: relative;
   width: 100%;
   height: 100vh;
   overflow: hidden;
 }
+
 .auth-bg-video {
   position: absolute;
   top: 50%;
@@ -229,6 +214,7 @@ export default {
   object-fit: cover;
   z-index: 1;
 }
+
 .auth-overlay {
   position: absolute;
   top: 0;
@@ -239,6 +225,8 @@ export default {
   z-index: 2;
   padding: 20px;
 }
+
+/* 卡片與容器 */
 .profile-card {
   max-width: 420px;
   width: 100%;
@@ -248,6 +236,7 @@ export default {
   backdrop-filter: blur(20px);
   box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
 }
+
 .avatar-container {
   width: 130px;
   height: 130px;
@@ -257,19 +246,21 @@ export default {
   background-color: rgba(0, 0, 0, 0.4);
   cursor: pointer;
   transition: all 0.3s ease;
-  overflow: hidden;
 }
+
 .avatar-container:hover {
   transform: scale(1.05);
   border-color: #fff;
   box-shadow: 0 0 25px rgba(226, 201, 151, 0.4);
 }
+
 .preview-img {
   width: 100%;
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
 }
+
 .upload-badge {
   position: absolute;
   bottom: 8px;
@@ -284,6 +275,8 @@ export default {
   justify-content: center;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
 }
+
+/* 輸入框設計 */
 .whisky-input {
   background: rgba(0, 0, 0, 0.3) !important;
   border: 1px solid rgba(226, 201, 151, 0.3) !important;
@@ -293,28 +286,63 @@ export default {
   padding: 15px;
   width: 100%;
   font-size: 1.1rem;
+  transition: all 0.3s ease;
 }
+
+.whisky-input:focus {
+  border-color: #e2c997 !important;
+  box-shadow: 0 0 15px rgba(226, 201, 151, 0.3);
+  background: rgba(0, 0, 0, 0.5) !important;
+  outline: none;
+}
+
+/* 按鈕設計 */
 .whisky-btn-primary {
   background: linear-gradient(135deg, #e2c997 0%, #b89a5e 100%) !important;
   color: #1a1a1a !important;
   border: none;
+  font-size: 1.1rem;
+  letter-spacing: 1px;
+  transition: all 0.3s ease;
 }
+
+.whisky-btn-primary:hover:not(:disabled) {
+  transform: translateY(-3px);
+  filter: brightness(1.1);
+  box-shadow: 0 10px 25px rgba(226, 201, 151, 0.4);
+}
+
+/* 文字與輔助類 */
+.text-gold {
+  color: #e2c997;
+}
+.fs-7 {
+  font-size: 0.8rem;
+}
+.ls-1 {
+  letter-spacing: 1px;
+}
+.ls-2 {
+  letter-spacing: 2px;
+}
+
 .status-msg {
   padding: 12px;
   border-radius: 12px;
   text-align: center;
+  font-size: 0.9rem;
 }
 .status-msg.success {
   background: rgba(40, 167, 69, 0.2);
   color: #85ff9e;
+  border: 1px solid rgba(40, 167, 69, 0.3);
 }
 .status-msg.error {
   background: rgba(220, 53, 69, 0.2);
   color: #ff8585;
+  border: 1px solid rgba(220, 53, 69, 0.3);
 }
-.text-gold {
-  color: #e2c997;
-}
+
 .auth-title {
   color: #e2c997;
   letter-spacing: 4px;
