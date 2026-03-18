@@ -2,13 +2,13 @@ version: '3.8'
 
 services:
   db:
-    image: mysql:8.0 # 建議用 8.0 比較穩
+    image: mysql:8.0
     restart: always
     ports:
       - "3306:3306"
     environment:
       MYSQL_ROOT_PASSWORD: aaron2k7au4a83
-      MYSQL_DATABASE: whiskyjoy # 確保這裡跟後端 .env 一致
+      MYSQL_DATABASE: whiskyjoy
       MYSQL_USER: aaron
       MYSQL_PASSWORD: aaron2k7au4a83
     volumes:
@@ -29,9 +29,9 @@ services:
     environment:
       - DB_HOST=db
     volumes:
-      - ./whiskyjoy-backend:/app          # 開發時建議同步程式碼
-      - ./whiskyjoy-backend/node_modules:/app/node_modules # 避免本地 node_modules 覆蓋容器
-      - ./whiskyjoy-backend/public/uploads:/app/public/uploads # 圖片永久保存
+      # 1. 拿掉 node_modules 掛載，讓容器使用 build 時裝好的套件
+      # 2. 圖片永久保存：掛載到伺服器本地資料夾
+      - ./whiskyjoy-backend/public/uploads:/app/public/uploads
     networks:
       - whisky-net
 
@@ -43,6 +43,7 @@ services:
     depends_on:
       - backend
     volumes:
+      # 讓前端 Nginx 也能讀取到後端上傳的圖片
       - ./whiskyjoy-backend/public/uploads:/usr/share/nginx/html/uploads:ro
     networks:
       - whisky-net

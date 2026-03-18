@@ -107,7 +107,7 @@ export default {
       try {
         // 替換成你實際的 API EndPoint
         const response = await axios.get("/api/products/get-filters");
-
+        console.log("API 回傳的篩選原始資料：", response.data);
         // 假設後端回傳格式為 { countries: [...], regions: [...], categories: [...] }
         if (response.data) {
           this.options = response.data;

@@ -221,7 +221,7 @@ export default {
 
       this.isUploading = true;
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("file", file); // 這裡的 "file" 要對應後端的 upload.single("file")
 
       try {
         const token = sessionStorage.getItem("token");
@@ -231,7 +231,13 @@ export default {
             Authorization: `Bearer ${token}`,
           },
         });
-        this.product_image_url = res.data.url;
+
+        console.log("後端回傳的完整資料:", res.data);
+
+        // ✅ 修正重點：將 .url 改成 .imageUrl
+        if (res.data && res.data.imageUrl) {
+          this.product_image_url = res.data.imageUrl;
+        }
       } catch (e) {
         console.error("上傳失敗細節:", e.response);
         alert(e.response?.data?.message || "圖片上傳失敗");

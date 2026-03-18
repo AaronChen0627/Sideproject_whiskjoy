@@ -1,4 +1,6 @@
 const productModel = require('../models/productModel');
+const path = require('path');
+const fs = require('fs');
 
 module.exports = {
   // 1. 取得篩選選單
@@ -32,7 +34,7 @@ module.exports = {
     }
   },
 
-  // 4. 創建產品 (對應 router.post('/'))
+  // 4. 創建產品
   createProduct: async (req, res) => {
     try {
       const newId = await productModel.insertProduct(req.body);
@@ -62,19 +64,40 @@ module.exports = {
     }
   },
 
-  // 💡 補上：處理圖片上傳 (對應 router.post('/upload'))
+  // 7. ✅ 處理產品圖片上傳（修正版）
   handleProductUpload: async (req, res) => {
     try {
+      // 1️⃣ 檢查檔案
       if (!req.file) {
         return res.status(400).json({ message: "請上傳檔案" });
       }
-      // 回傳圖片網址或檔案名稱
-      res.status(200).json({ 
-        message: "上傳成功", 
-        imageUrl: `/uploads/${req.file.filename}` 
+
+      // 2️⃣ 建立資料夾
+      const uploadDir = path.join(__dirname, '../public/uploads/products');
+
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+
+      // 3️⃣ 產生檔名（🔥 關鍵）
+      const ext = path.extname(req.file.originalname);
+      const fileName = `product-${Date.now()}${ext}`;
+
+      // 4️⃣ 寫入檔案（🔥 核心）
+      const fullPath = path.join(uploadDir, fileName);
+      await fs.promises.writeFile(fullPath, req.file.buffer);
+
+      // 5️⃣ 回傳 URL
+      const imageUrl = `/uploads/products/${fileName}`;
+
+      res.status(200).json({
+        message: "上傳成功",
+        imageUrl
       });
+
     } catch (error) {
-      res.status(500).json({ error: error.message });
+      console.error("Product Upload Error:", error);
+      res.status(500).json({ message: "圖片上傳失敗" });
     }
   }
 };
