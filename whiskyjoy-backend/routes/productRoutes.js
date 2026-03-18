@@ -3,6 +3,9 @@ const router = express.Router();
 const productController = require('../controllers/productController');
 const upload = require('../middleware/upload'); // 你的 multer 配置
 
+// 1. 獲取篩選選單 (放在 :id 之前)
+router.get('/get-filters', productController.getFilters);
+
 // 獲取所有產品
 router.get('/', productController.getAllProducts);
 

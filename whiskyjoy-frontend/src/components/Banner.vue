@@ -18,9 +18,11 @@
             <h1 class="whisky-title">WHISKY JOY</h1>
             <p class="whisky-subtitle">enjoy & share your note</p>
 
-            <router-link to="/login">
+            <router-link :to="startLink">
               <button class="btn whisky-btn mt-4">
-                <span class="btn-text">Start Discovery</span>
+                <span class="btn-text">{{
+                  isAuthenticated ? "Write Now" : "Start Discovery"
+                }}</span>
                 <i class="bi bi-compass ms-2"></i>
               </button>
             </router-link>
@@ -32,8 +34,22 @@
 </template>
 
 <script>
+import { mapGetters } from "vuex";
+
 export default {
   name: "Banner",
+  computed: {
+    // 1. 從 Vuex 引入登入狀態
+    // 假設你的 store 裡有個 getter 叫 isAuthenticated
+    ...mapGetters(["isAuthenticated"]),
+
+    // 2. 根據登入狀態決定導向哪裡
+    startLink() {
+      // 如果已登入，導向產品清單頁面 (例如 /note)
+      // 如果未登入，則導向登入頁面
+      return this.isAuthenticated ? "/note" : "/login";
+    },
+  },
 };
 </script>
 

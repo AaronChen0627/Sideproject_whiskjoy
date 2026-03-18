@@ -5,8 +5,8 @@ import ResetPassword from '@/views/ResetPassword.vue';
 import ProductDetails from '@/views/ProductDetails.vue';
 import AboutView from '@/views/AboutView.vue';
 import LoginRegister from '@/views/LoginRegister.vue';
-import AddProduct from '@/views/AddProduct.vue'; // 新增 AddProduct 頁面
-import Addlist from '@/views/Addlist.vue'
+import AddProduct from '@/views/AddProduct.vue';
+import Addlist from '@/views/Addlist.vue';
 import CreateProfile from '@/views/CreateProfile.vue';
 import UpdateProfile from '@/views/UpdateProfile.vue';
 
@@ -39,34 +39,34 @@ const routes = [
     props: true,
   },
   {
-    path: '/login', // 新增 LoginRegister 的路由
+    path: '/login',
     name: 'login-register',
     component: LoginRegister,
-    meta: { requiresAuth: false }, // 不需要认证
+    meta: { requiresAuth: false },
   },
   {
-    path: '/create-profile', // 新增的路由
+    path: '/create-profile',
     name: 'create-profile',
-    component: CreateProfile, // 綁定 CreateProfile 頁面
-    meta: { requiresAuth: false }, // 不需要身份驗證
+    component: CreateProfile,
+    meta: { requiresAuth: false },
   },
-    {
-    path: '/update-profile', // 新增的路由
+  {
+    path: '/update-profile',
     name: 'update-profile',
-    component: UpdateProfile, // 綁定 CreateProfile 頁面
-    meta: { requiresAuth: false }, // 不需要身份驗證
+    component: UpdateProfile,
+    meta: { requiresAuth: true }, // 通常更新個人資料需要登入
   },
   {
-    path: '/add-product', // 新增 AddProduct 路由
+    path: '/add-product',
     name: 'add-product',
-    component: AddProduct, // 綁定 AddProduct 頁面
-    meta: { requiresAuth: true }, // 需要身份驗證
+    component: AddProduct,
+    meta: { requiresAuth: true },
   },
   {
-    path: '/add-list', 
+    path: '/add-list',
     name: 'add-list',
-    component: Addlist, 
-    meta: { requiresAuth: true }, // 需要身份驗證
+    component: Addlist,
+    meta: { requiresAuth: true },
   },
 ];
 
@@ -75,18 +75,24 @@ const router = createRouter({
   routes,
 });
 
-// 路由守衛，檢查是否需要認證
+/**
+ * 路由守衛：統一管理跳轉邏輯
+ */
 router.beforeEach((to, from, next) => {
-  // 💡 修正：對齊 Vuex 存入的名稱 "token"
-  const token = sessionStorage.getItem('token'); 
-  
-  if (to.meta.requiresAuth && !token) {
-    // 如果該頁面需要權限但沒有 token，導向登入
-    next('/login');
-  } else {
-    // 允許通過
-    next();
+  const token = sessionStorage.getItem('token');
+
+  // 1. 如果要去登入頁，但已經有 token 了，直接踢回首頁
+  if (to.path === '/login' && token) {
+    return next({ path: '/' });
   }
+
+  // 2. 如果要去的地方需要權限 (requiresAuth)，但沒有 token，導向登入頁
+  if (to.meta.requiresAuth && !token) {
+    return next({ path: '/login' });
+  }
+
+  // 3. 其餘情況放行
+  next();
 });
 
 export default router;
